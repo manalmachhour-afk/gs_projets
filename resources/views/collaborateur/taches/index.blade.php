@@ -1,122 +1,624 @@
+```blade
 @extends('layouts.app')
 
 @section('content')
-<div class="header-section mb-4">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center header-content">
-            <div>
-                <h1 class="page-title"><i class="bi bi-person-check"></i> Tableau de bord Collaborateur</h1>
-                <p class="welcome-text mb-0">Bienvenue, <strong>{{ Auth::user()->prenom }} {{ Auth::user()->name }}</strong></p>
-            </div>
-            <div>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="btn btn-danger">Se déconnecter</a>
+
+<div class="collaborator-dashboard">
+
+    {{-- En-tête --}}
+    <div class="header-section">
+        <div class="container">
+            <div class="header-content">
+
+                <div>
+                    <div class="header-icon">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+
+                    <h1 class="page-title">
+                        Tableau de bord Collaborateur
+                    </h1>
+
+                    <p class="welcome-text">
+                        Bienvenue,
+                        <strong>{{ Auth::user()->prenom }} {{ Auth::user()->name }}</strong>
+                    </p>
+
+                    <p class="header-subtitle">
+                        Consultez vos tâches et suivez votre progression.
+                    </p>
+                </div>
+
+                <div>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
+
+                    <a href="#"
+                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                       class="btn btn-logout">
+                        <i class="bi bi-box-arrow-right me-2"></i>
+                        Se déconnecter
+                    </a>
+                </div>
+
             </div>
         </div>
     </div>
-</div>
-<div class="container">
-    <div class="stats-container animate-fade">
-        <div class="stats-card stats-card-primary">
-            <i class="bi bi-list-task"></i>
-            <h2>{{ $taches->count() }}</h2>
-            <p>Tâches assignées</p>
+
+    <div class="container dashboard-content">
+
+        {{-- Statistiques --}}
+        <div class="stats-container">
+
+            <div class="stats-card stats-card-primary">
+                <div class="stats-icon">
+                    <i class="bi bi-list-task"></i>
+                </div>
+
+                <div class="stats-info">
+                    <h2>{{ $taches->count() }}</h2>
+                    <p>Tâches assignées</p>
+                </div>
+
+                <i class="bi bi-list-task stats-decoration"></i>
+            </div>
+
+            <div class="stats-card stats-card-success">
+                <div class="stats-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+
+                <div class="stats-info">
+                    <h2>{{ $taches->where('etat', 'Terminée')->count() }}</h2>
+                    <p>Tâches terminées</p>
+                </div>
+
+                <i class="bi bi-check-circle stats-decoration"></i>
+            </div>
+
         </div>
-        <div class="stats-card stats-card-success">
-            <i class="bi bi-check-circle"></i>
-            <h2>{{ $taches->where('etat','Terminée')->count() }}</h2>
-            <p>Tâches terminées</p>
-        </div>
-    </div>
-    <div class="card animate-fade">
-        <div class="card-header">
-            <h3 class="mb-0">Mes tâches assignées</h3>
-            <span class="badge bg-primary badge-custom">{{ $taches->count() }} tâches</span>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover align-middle table-bordered" style="width: 100%; background: #e6f9ec; border-collapse: separate; border-spacing: 0 0.5rem;">
-                <thead class="table-primary">
-                    <tr>
-                        <th class="text-center">Titre</th>
-                        <th class="text-center">Description</th>
-                        <th class="text-center">Date début</th>
-                        <th class="text-center">Date fin</th>
-                        <th class="text-center">État</th>
-                        <th class="text-center">Projet</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($taches as $tache)
-                        <tr style="background: #fff; box-shadow: 0 2px 8px #e3f2fd; border-radius: 8px;">
-                            <td class="fw-bold text-primary text-center align-middle" style="background: #e3f2fd; border-radius: 8px 0 0 8px;">{{ $tache->titre }}</td>
-                            <td class="text-center align-middle" style="background: #f9fbe7;">{{ $tache->description }}</td>
-                            <td class="text-center align-middle" style="background: #e3f2fd;">{{ $tache->date_debut }}</td>
-                            <td class="text-center align-middle" style="background: #e3f2fd;">{{ $tache->date_fin }}</td>
-                            <td class="text-center align-middle" style="background: #f1f8e9;">
-                                @if($tache->etat == 'Planifiée')
-                                    <span class="badge bg-info text-dark">{{ $tache->etat }}</span>
-                                @elseif($tache->etat == 'En cours')
-                                    <span class="badge bg-warning text-dark">{{ $tache->etat }}</span>
-                                @elseif($tache->etat == 'Terminée')
-                                    <span class="badge bg-success">{{ $tache->etat }}</span>
-                                @elseif($tache->etat == 'Annulée')
-                                    <span class="badge bg-danger">{{ $tache->etat }}</span>
-                                @else
-                                    {{ $tache->etat }}
-                                @endif
-                            </td>
-                            <td class="text-center align-middle" style="background: #f1f8e9; border-radius: 0 8px 8px 0;">{{ $tache->projet->nom ?? '-' }}</td>
-                        </tr>
-                    @empty
+
+        {{-- Liste des tâches --}}
+        <div class="tasks-card">
+
+            <div class="tasks-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-clipboard-check me-2"></i>
+                        Mes tâches assignées
+                    </h3>
+
+                    <p>Retrouvez ici toutes les tâches qui vous sont attribuées.</p>
+                </div>
+
+                <span class="tasks-count">
+                    {{ $taches->count() }} tâches
+                </span>
+            </div>
+
+            <div class="table-responsive">
+
+                <table class="table tasks-table align-middle mb-0">
+
+                    <thead>
                         <tr>
-                            <td colspan="6" class="text-muted text-center">Aucune tâche assignée.</td>
+                            <th>Titre</th>
+                            <th>Description</th>
+                            <th>Date début</th>
+                            <th>Date fin</th>
+                            <th>État</th>
+                            <th>Projet</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody>
+
+                        @forelse($taches as $tache)
+
+                            <tr>
+
+                                <td>
+                                    <span class="task-title">
+                                        {{ $tache->titre }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="task-description"
+                                          title="{{ $tache->description }}">
+                                        {{ $tache->description ?: 'Aucune description' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="date-text">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        {{ $tache->date_debut }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="date-text">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        {{ $tache->date_fin }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @if($tache->etat == 'Planifiée')
+
+                                        <span class="status-badge status-planned">
+                                            <i class="bi bi-clock me-1"></i>
+                                            {{ $tache->etat }}
+                                        </span>
+
+                                    @elseif($tache->etat == 'En cours')
+
+                                        <span class="status-badge status-progress">
+                                            <i class="bi bi-arrow-repeat me-1"></i>
+                                            {{ $tache->etat }}
+                                        </span>
+
+                                    @elseif($tache->etat == 'Terminée')
+
+                                        <span class="status-badge status-completed">
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            {{ $tache->etat }}
+                                        </span>
+
+                                    @elseif($tache->etat == 'Annulée')
+
+                                        <span class="status-badge status-cancelled">
+                                            <i class="bi bi-x-circle me-1"></i>
+                                            {{ $tache->etat }}
+                                        </span>
+
+                                    @else
+                                        <span>{{ $tache->etat }}</span>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    <span class="project-name">
+                                        <i class="bi bi-folder2 me-1"></i>
+                                        {{ $tache->projet->nom ?? '-' }}
+                                    </span>
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+                                <td colspan="6">
+
+                                    <div class="empty-state">
+
+                                        <div class="empty-icon">
+                                            <i class="bi bi-clipboard-x"></i>
+                                        </div>
+
+                                        <h5>Aucune tâche assignée</h5>
+
+                                        <p>
+                                            Vous n'avez actuellement aucune tâche à réaliser.
+                                            Les nouvelles tâches apparaîtront ici.
+                                        </p>
+
+                                    </div>
+
+                                </td>
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
         </div>
+
     </div>
 </div>
+
 @endsection
+
+
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        :root {
-            --primary-color: #1e293b;
-            --secondary-color: #ff9800;
-            --success-color: #16a34a;
-            --light-bg: #f8fafc;
-            --card-bg: #fff;
-            --text-color: #1e293b;
-            --border-radius: 16px;
-            --shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
-            --transition: all 0.3s ease;
+
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+<style>
+
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    /* Général */
+    .collaborator-dashboard {
+        min-height: 100vh;
+        padding-bottom: 40px;
+        background: #f8fafc;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        color: #1e293b;
+    }
+
+    /* En-tête */
+    .collaborator-dashboard .header-section {
+        position: relative;
+        overflow: hidden;
+        padding: 35px 0;
+        margin-bottom: 30px;
+        background: linear-gradient(120deg, #1e40af, #2563eb, #3b82f6);
+        color: #fff;
+    }
+
+    .collaborator-dashboard .header-section::before {
+        content: "";
+        position: absolute;
+        width: 350px;
+        height: 350px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.07);
+        top: -200px;
+        right: 5%;
+    }
+
+    .collaborator-dashboard .header-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .collaborator-dashboard .header-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.17);
+        font-size: 24px;
+    }
+
+    .collaborator-dashboard .page-title {
+        font-size: 27px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .collaborator-dashboard .welcome-text {
+        font-size: 15px;
+        margin-bottom: 5px;
+        color: #eff6ff;
+    }
+
+    .collaborator-dashboard .welcome-text strong {
+        color: #fff;
+    }
+
+    .collaborator-dashboard .header-subtitle {
+        color: #dbeafe;
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+
+    .collaborator-dashboard .btn-logout {
+        display: inline-flex;
+        align-items: center;
+        padding: 11px 17px;
+        border-radius: 9px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .collaborator-dashboard .btn-logout:hover {
+        color: #fff;
+        background: #dc2626;
+        border-color: #dc2626;
+    }
+
+    /* Statistiques */
+    .collaborator-dashboard .stats-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+        margin-bottom: 30px;
+    }
+
+    .collaborator-dashboard .stats-card {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 145px;
+        padding: 25px;
+        overflow: hidden;
+        border-radius: 15px;
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+        transition: transform 0.2s ease;
+    }
+
+    .collaborator-dashboard .stats-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .collaborator-dashboard .stats-card-primary {
+        background: linear-gradient(120deg, #1e40af, #3b82f6);
+    }
+
+    .collaborator-dashboard .stats-card-success {
+        background: linear-gradient(120deg, #15803d, #22a447);
+    }
+
+    .collaborator-dashboard .stats-icon {
+        width: 58px;
+        height: 58px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.19);
+        font-size: 27px;
+    }
+
+    .collaborator-dashboard .stats-info {
+        position: relative;
+        z-index: 1;
+    }
+
+    .collaborator-dashboard .stats-info h2 {
+        font-size: 32px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .collaborator-dashboard .stats-info p {
+        font-size: 14px;
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .collaborator-dashboard .stats-decoration {
+        position: absolute;
+        right: 20px;
+        bottom: -20px;
+        font-size: 100px;
+        opacity: 0.10;
+    }
+
+    /* Carte des tâches */
+    .collaborator-dashboard .tasks-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 15px;
+        box-shadow: 0 6px 22px rgba(15, 23, 42, 0.045);
+        overflow: hidden;
+    }
+
+    .collaborator-dashboard .tasks-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        padding: 23px 25px;
+        border-bottom: 1px solid #eef0f4;
+    }
+
+    .collaborator-dashboard .tasks-card-header h3 {
+        color: #1e293b;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .collaborator-dashboard .tasks-card-header h3 i {
+        color: #2563eb;
+    }
+
+    .collaborator-dashboard .tasks-card-header p {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+
+    .collaborator-dashboard .tasks-count {
+        padding: 7px 13px;
+        border-radius: 30px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* Tableau */
+    .collaborator-dashboard .tasks-table {
+        min-width: 850px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .collaborator-dashboard .tasks-table thead th {
+        padding: 16px 14px;
+        background: #f8fafc;
+        color: #475569;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .collaborator-dashboard .tasks-table tbody td {
+        padding: 16px 14px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #475569;
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    .collaborator-dashboard .tasks-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .collaborator-dashboard .tasks-table tbody tr {
+        transition: background 0.2s ease;
+    }
+
+    .collaborator-dashboard .tasks-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .collaborator-dashboard .task-title {
+        color: #1e40af;
+        font-weight: 700;
+    }
+
+    .collaborator-dashboard .task-description {
+        display: inline-block;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #64748b;
+    }
+
+    .collaborator-dashboard .date-text {
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .collaborator-dashboard .date-text i {
+        color: #64748b;
+    }
+
+    .collaborator-dashboard .project-name {
+        color: #334155;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* États */
+    .collaborator-dashboard .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .collaborator-dashboard .status-planned {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .collaborator-dashboard .status-progress {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .collaborator-dashboard .status-completed {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .collaborator-dashboard .status-cancelled {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    /* Aucune tâche */
+    .collaborator-dashboard .empty-state {
+        padding: 55px 20px;
+        text-align: center;
+    }
+
+    .collaborator-dashboard .empty-icon {
+        width: 65px;
+        height: 65px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 28px;
+    }
+
+    .collaborator-dashboard .empty-state h5 {
+        color: #1e293b;
+        font-size: 17px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .collaborator-dashboard .empty-state p {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+
+        .collaborator-dashboard .header-content {
+            flex-direction: column;
+            align-items: flex-start;
         }
-        body { background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%); font-family: 'Inter', 'Segoe UI', Arial, sans-serif; color: var(--text-color); }
-        .header-section { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; padding: 1.5rem 0; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: var(--border-radius); }
-        .header-content { position: relative; z-index: 1; }
-        .card { background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); border: none; margin-bottom: 1.5rem; transition: var(--transition); }
-        .card:hover { transform: translateY(-8px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.03); }
-        .card-header { background: var(--card-bg); border-bottom: 1px solid #eee; padding: 1.25rem 1.5rem; border-radius: var(--border-radius) var(--border-radius) 0 0 !important; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .stats-card { border-radius: var(--border-radius); padding: 1.5rem; color: white; display: flex; flex-direction: column; min-height: 120px; position: relative; overflow: hidden; transition: var(--transition); }
-        .stats-card-primary { background: linear-gradient(135deg, var(--primary-color), #3b82f6); }
-        .stats-card-success { background: linear-gradient(135deg, var(--success-color), #22c55e); }
-        .stats-card i { font-size: 2.2rem; margin-bottom: 0.5rem; }
-        .stats-card h2 { font-weight: 700; font-size: 2rem; margin-bottom: 0.25rem; }
-        .stats-card p { margin-bottom: 0; font-size: 1rem; }
-        .badge-custom { font-weight: 500; padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.875rem; }
-        .animate-fade { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .table th, .table td { vertical-align: middle !important; }
-        .table th { background: #f1f5f9; font-weight: 600; }
-        .table-hover tbody tr:hover { background: #f3f4f6; }
-        .btn { border-radius: 8px; }
-        .sidebar { background: var(--primary-color); color: #fff; min-width: 200px; border-radius: var(--border-radius); }
-        .sidebar-link { color: #fff; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 8px; transition: background 0.2s; }
-        .sidebar-link:hover, .sidebar-link.active { background: var(--secondary-color); color: #fff; }
-        .form-control, .form-select { border-radius: 8px; }
-        .badge.bg-info, .badge.bg-warning, .badge.bg-success, .badge.bg-danger { font-size: 0.95em; }
-    </style>
+
+        .collaborator-dashboard .header-content > div:last-child {
+            width: 100%;
+        }
+
+        .collaborator-dashboard .btn-logout {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .collaborator-dashboard .page-title {
+            font-size: 22px;
+        }
+
+        .collaborator-dashboard .stats-container {
+            grid-template-columns: 1fr;
+        }
+
+        .collaborator-dashboard .tasks-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 480px) {
+
+        .collaborator-dashboard .header-section {
+            padding: 25px 0;
+        }
+
+        .collaborator-dashboard .stats-card {
+            padding: 20px;
+            min-height: 120px;
+        }
+
+        .collaborator-dashboard .tasks-card-header {
+            padding: 20px 16px;
+        }
+    }
+
+</style>
 @endpush
+```

@@ -1,134 +1,186 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $etats = [
+        'Planifié' => 'planifie',
+        'En cours' => 'en-cours',
+        'Terminé'  => 'termine',
+        'Annulé'   => 'annule',
+    ];
+    $fmt = fn($d) => $d ? \Carbon\Carbon::parse($d)->format('d/m/Y') : '—';
+@endphp
+
 <div class="admin-dashboard">
-<div class="header-section">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center header-content">
+
+    {{-- En-tête --}}
+    <div class="dash-header">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div>
-                <h1 class="page-title"><i class="bi bi-briefcase"></i> Tableau de bord Administrateur</h1>
-                <p class="welcome-text mb-0">Bienvenue, <strong>{{ Auth::user()->prenom }} {{ Auth::user()->name }}</strong></p>
+                <h1 class="dash-title"><i class="bi bi-briefcase-fill"></i> Tableau de bord</h1>
+                <p class="mb-0 opacity-75">Bienvenue, <strong>{{ Auth::user()->prenom }} {{ Auth::user()->name }}</strong></p>
             </div>
-            <div>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="logout-btn">
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button type="submit" class="logout-btn">
                     <i class="bi bi-box-arrow-right"></i> Se déconnecter
-                </a>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container pb-5">
+
+        @if (session('success'))
+            <div class="alert alert-success border-0 rounded-3 shadow-sm d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
             </div>
-        </div>
-    </div>
-</div>
+        @endif
 
-<div class="container">
-    <!-- Statistiques améliorées -->
-    <div class="stats-container animate-fade">
-        <div class="stats-card stats-card-primary">
-            <i class="bi bi-briefcase"></i>
-            <h2>{{ $projets->count() }}</h2>
-            <p>Projets enregistrés</p>
-        </div>
-        <div class="stats-card stats-card-success">
-            <i class="bi bi-check-circle"></i>
-            <h2>{{ $projets->where('etat', 'Terminé')->count() }}</h2>
-            <p>Projets terminés</p>
-        </div>
-        <div class="stats-card stats-card-warning">
-            <i class="bi bi-clock"></i>
-            <h2>{{ $projets->where('etat', 'En cours')->count() }}</h2>
-            <p>Projets en cours</p>
-        </div>
-    </div>
-
-    <!-- Carte des projets avec design amélioré -->
-    <div class="card animate-fade">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
+        {{-- Statistiques --}}
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-icon stat-total"><i class="bi bi-folder2-open"></i></span>
                 <div>
-                    <h3 class="mb-0">Liste des projets</h3>
-                    <span class="stage-dates">Gestion complète des projets</span>
+                    <div class="stat-value">{{ $projets->count() }}</div>
+                    <div class="stat-label">Projets au total</div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-primary badge-custom">{{ $projets->count() }} projets</span>
-                    <a class="btn btn-success btn-icon" href="{{ route('admin.projets.create') }}">
-                        <i class="bi bi-plus-lg"></i> Nouveau
-                    </a>
-                    <a class="btn btn-primary btn-icon" href="{{ route('admin.projets.assign') }}">
-                        <i class="bi bi-person-plus"></i> Assigner membres
-                    </a>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon stat-en-cours"><i class="bi bi-hourglass-split"></i></span>
+                <div>
+                    <div class="stat-value">{{ $projets->where('etat', 'En cours')->count() }}</div>
+                    <div class="stat-label">En cours</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon stat-termine"><i class="bi bi-check-circle"></i></span>
+                <div>
+                    <div class="stat-value">{{ $projets->where('etat', 'Terminé')->count() }}</div>
+                    <div class="stat-label">Terminés</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon stat-planifie"><i class="bi bi-calendar-event"></i></span>
+                <div>
+                    <div class="stat-value">{{ $projets->where('etat', 'Planifié')->count() }}</div>
+                    <div class="stat-label">Planifiés</div>
                 </div>
             </div>
         </div>
-        <div class="card-body p-0">
+
+        {{-- Liste des projets --}}
+        <div class="panel">
+            <div class="panel-head">
+                <div>
+                    <h3 class="mb-0 fs-5 fw-bold">Liste des projets</h3>
+                    <small class="text-muted">Gestion complète des projets</small>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-soft" href="{{ route('admin.projets.assign') }}">
+                        <i class="bi bi-person-plus-fill me-1"></i> Assigner des membres
+                    </a>
+                    <a class="btn btn-gradient" href="{{ route('admin.projets.create') }}">
+                        <i class="bi bi-plus-lg me-1"></i> Nouveau projet
+                    </a>
+                </div>
+            </div>
+
             @if($projets->isEmpty())
                 <div class="empty-state">
                     <i class="bi bi-folder-x"></i>
                     <h4 class="mt-3">Aucun projet enregistré</h4>
-                    <p class="text-muted">Commencez par créer un nouveau projet</p>
+                    <p class="text-muted mb-4">Commencez par créer votre premier projet.</p>
+                    <a class="btn btn-gradient" href="{{ route('admin.projets.create') }}">
+                        <i class="bi bi-plus-lg me-1"></i> Créer un projet
+                    </a>
                 </div>
             @else
+                {{-- Barre d'outils : recherche + filtres --}}
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchProjet" class="form-control" placeholder="Rechercher un projet ou un responsable…">
+                    </div>
+                    <div class="chips" id="etatFilters">
+                        <button type="button" class="chip active" data-etat="all">
+                            Tous <span>{{ $projets->count() }}</span>
+                        </button>
+                        @foreach($etats as $etat => $slug)
+                            <button type="button" class="chip" data-etat="{{ $etat }}">
+                                {{ $etat }} <span>{{ $projets->where('etat', $etat)->count() }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Nom</th>
-                                <th>Description</th>
-                                <th>Dates</th>
+                                <th>Projet</th>
+                                <th class="d-none d-lg-table-cell">Période</th>
                                 <th>État</th>
-                                <th>Responsable</th>
-                                <th>Actions</th>
+                                <th class="d-none d-md-table-cell">Responsable</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($projets as $projet)
-                                <tr class="projet-item">
-                                    <td class="fw-bold text-primary">{{ $projet->nom }}</td>
-                                    <td>{{ Str::limit($projet->description, 50) }}</td>
+                                @php
+                                    $resp = $projet->responsable;
+                                    $slug = $etats[$projet->etat] ?? 'planifie';
+                                @endphp
+                                <tr class="projet-row"
+                                    data-etat="{{ $projet->etat }}"
+                                    data-search="{{ mb_strtolower($projet->nom . ' ' . ($resp->prenom ?? '') . ' ' . ($resp->name ?? '')) }}">
                                     <td>
-                                        <small class="text-muted">{{ $projet->date_debut }} - {{ $projet->date_fin }}</small>
+                                        <div class="projet-name">{{ $projet->nom }}</div>
+                                        <div class="projet-desc">{{ Str::limit($projet->description, 60) }}</div>
+                                    </td>
+                                    <td class="d-none d-lg-table-cell">
+                                        <span class="date-range">
+                                            <i class="bi bi-calendar3"></i>
+                                            {{ $fmt($projet->date_debut) }} <i class="bi bi-arrow-right-short"></i> {{ $fmt($projet->date_fin) }}
+                                        </span>
                                     </td>
                                     <td>
-                                        @if($projet->etat == 'Planifié')
-                                            <span class="badge bg-info">{{ $projet->etat }}</span>
-                                        @elseif($projet->etat == 'En cours')
-                                            <span class="badge bg-warning text-dark">{{ $projet->etat }}</span>
-                                        @elseif($projet->etat == 'Terminé')
-                                            <span class="badge bg-success">{{ $projet->etat }}</span>
-                                        @elseif($projet->etat == 'Annulé')
-                                            <span class="badge bg-danger">{{ $projet->etat }}</span>
-                                        @endif
+                                        <span class="etat etat-{{ $slug }}">{{ $projet->etat }}</span>
                                     </td>
-                                    <td>
-                                        @if($projet->responsable)
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar-sm me-2">
-                                                    <div class="avatar-initial bg-light rounded-circle">
-                                                        {{ substr($projet->responsable->prenom, 0, 1) }}{{ substr($projet->responsable->name, 0, 1) }}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    {{ $projet->responsable->prenom }} {{ $projet->responsable->name }}
-                                                </div>
+                                    <td class="d-none d-md-table-cell">
+                                        @if($resp)
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="avatar">{{ mb_strtoupper(mb_substr($resp->prenom, 0, 1) . mb_substr($resp->name, 0, 1)) }}</span>
+                                                <span class="fw-medium">{{ $resp->prenom }} {{ $resp->name }}</span>
                                             </div>
                                         @else
-                                            <span class="text-muted">Non assigné</span>
+                                            <span class="text-muted fst-italic">Non assigné</span>
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <a href="{{ route('admin.projets.edit', $projet->idPr) }}" class="btn btn-sm btn-outline-primary btn-icon" title="Modifier">
-                                                <i class="bi bi-pencil"></i>
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <a href="{{ route('admin.projets.edit', $projet->idPr) }}"
+                                               class="icon-btn" title="Modifier" aria-label="Modifier {{ $projet->nom }}">
+                                                <i class="bi bi-pencil-fill"></i>
                                             </a>
-                                            <form action="{{ route('admin.projets.destroy', $projet->id) }}" method="POST" style="display: inline;">
+                                            <form action="{{ route('admin.projets.destroy', $projet->idPr) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger btn-icon" title="Supprimer" onclick="return confirm('Êtes-vous sûr ?')">
-                                                    <i class="bi bi-trash"></i>
+                                                <button type="submit" class="icon-btn icon-btn-danger" title="Supprimer"
+                                                        aria-label="Supprimer {{ $projet->nom }}"
+                                                        onclick="return confirm('Supprimer le projet « {{ addslashes($projet->nom) }} » ?')">
+                                                    <i class="bi bi-trash-fill"></i>
                                                 </button>
                                             </form>
                                         </div>
                                     </td>
                                 </tr>
                             @endforeach
+                            <tr id="noResult" class="d-none">
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <i class="bi bi-search fs-2 d-block mb-2"></i>Aucun projet ne correspond à votre recherche
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -136,339 +188,203 @@
         </div>
     </div>
 </div>
-</div>
-@endsection
 
 @push('styles')
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <style>
-    :root {
-        --primary-color: #2563eb;
-        --secondary-color: #7c3aed;
-        --success-color: #16a34a;
-        --warning-color: #ea580c;
-        --danger-color: #dc2626;
-        --info-color: #0284c7;
-        --light-bg: #f8fafc;
-        --card-bg: #ffffff;
-        --text-color: #1e293b;
-        --border-radius: 12px;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --transition: all 0.3s ease;
+    .admin-dashboard {
+        --primary: #6d28d9;
+        --primary-2: #4f46e5;
+        --primary-soft: #f5f3ff;
+        --border: #e5e7eb;
+        --text: #1f2937;
+        font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+        color: var(--text);
+        background: #f8fafc;
+        min-height: 100vh;
     }
-    body, html, .admin-dashboard {
-        background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%) !important;
-        font-family: 'Poppins', 'Segoe UI', Arial, sans-serif !important;
-        color: var(--text-color) !important;
+
+    /* En-tête */
+    .dash-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-2));
+        color: #fff;
+        padding: 2rem 0 4.5rem;
+        margin-bottom: -3rem;
     }
-    .admin-dashboard .header-section {
-        background: linear-gradient(135deg, #475569, #334155) !important;
-        color: white !important;
-        position: relative;
-        overflow: hidden;
-    }
-    .admin-dashboard .header-section::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-        transform: rotate(30deg);
-    }
-    .admin-dashboard .stats-card-primary {
-        background: linear-gradient(135deg, var(--primary-color), #3b82f6) !important;
-    }
-    .admin-dashboard .stats-card-success {
-        background: linear-gradient(135deg, var(--success-color), #22c55e) !important;
-    }
-    .admin-dashboard .stats-card-warning {
-        background: linear-gradient(135deg, var(--warning-color), #f97316) !important;
-    }
-    .admin-dashboard .card {
-        background-color: var(--card-bg) !important;
-    }
-    .admin-dashboard .badge.bg-primary {
-        background-color: var(--primary-color) !important;
-        color: #fff !important;
-    }
-    .admin-dashboard .badge.bg-success {
-        background-color: var(--success-color) !important;
-        color: #fff !important;
-    }
-    .admin-dashboard .badge.bg-warning {
-        background-color: var(--warning-color) !important;
-        color: #fff !important;
-    }
-    .admin-dashboard .badge.bg-info {
-        background-color: var(--info-color) !important;
-        color: #fff !important;
-    }
-    .admin-dashboard .badge.bg-danger {
-        background-color: var(--danger-color) !important;
-        color: #fff !important;
-    }
-    /* Header amélioré */
-    .header-section {
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: white;
-        padding: 1.5rem 0;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .header-section::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
-        transform: rotate(30deg);
-    }
-    
-    .page-title {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 1.75rem;
-        font-weight: 700;
-    }
-    
-    .welcome-text {
-        font-size: 1.1rem;
-        opacity: 0.9;
-    }
-    
-    /* Bouton de déconnexion amélioré */
+    .dash-title { font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; gap: .6rem; margin-bottom: .25rem; }
     .logout-btn {
-        background-color: rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 0.5rem 1.25rem;
-        border-radius: 50px;
-        transition: var(--transition);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
+        background: rgba(255,255,255,.15);
+        border: 1px solid rgba(255,255,255,.3);
+        color: #fff; padding: .5rem 1.2rem; border-radius: 50px;
+        display: inline-flex; align-items: center; gap: .5rem;
+        transition: background .2s; cursor: pointer;
     }
-    
-    .logout-btn:hover {
-        background-color: rgba(255, 255, 255, 0.3);
-        color: white;
-    }
-    
-    /* Stats cards améliorées */
-    .stats-container {
+    .logout-btn:hover { background: rgba(255,255,255,.28); }
+
+    /* Statistiques */
+    .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-    
-    .stats-card {
-        border-radius: var(--border-radius);
-        padding: 1.5rem;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        min-height: 140px;
-        position: relative;
-        overflow: hidden;
-        transition: var(--transition);
-        box-shadow: var(--shadow);
-    }
-    
-    .stats-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .stats-card::before {
-        content: "";
-        position: absolute;
-        top: -20px;
-        right: -20px;
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.15);
-    }
-    
-    .stats-card i {
-        font-size: 2.5rem;
-        margin-bottom: 0.75rem;
-        z-index: 1;
-    }
-    
-    .stats-card h2 {
-        font-weight: 700;
-        font-size: 2.5rem;
-        margin-bottom: 0.25rem;
-        z-index: 1;
-    }
-    
-    .stats-card p {
-        margin-bottom: 0;
-        font-size: 1rem;
-        z-index: 1;
-    }
-    
-    .stats-card-primary {
-        background: linear-gradient(135deg, var(--primary-color), #3b82f6);
-    }
-    
-    .stats-card-success {
-        background: linear-gradient(135deg, var(--success-color), #22c55e);
-    }
-    
-    .stats-card-warning {
-        background: linear-gradient(135deg, var(--warning-color), #f97316);
-    }
-    
-    /* Carte améliorée */
-    .card {
-        background-color: var(--card-bg);
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
-        border: none;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
         margin-bottom: 1.5rem;
-        transition: var(--transition);
-        overflow: hidden;
+        position: relative;
     }
-    
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    .stat-card {
+        background: #fff; border-radius: 16px; padding: 1.2rem 1.3rem;
+        display: flex; align-items: center; gap: 1rem;
+        box-shadow: 0 4px 14px -4px rgba(15,23,42,.12);
+        transition: transform .2s, box-shadow .2s;
     }
-    
-    .card-header {
-        background-color: var(--card-bg);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        padding: 1.25rem 1.5rem;
-        border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 22px -6px rgba(15,23,42,.18); }
+    .stat-icon {
+        width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
-    
-    /* Tableau amélioré */
-    .table {
-        margin-bottom: 0;
+    .stat-total    { background: #ede9fe; color: #6d28d9; }
+    .stat-en-cours { background: #ffedd5; color: #ea580c; }
+    .stat-termine  { background: #dcfce7; color: #16a34a; }
+    .stat-planifie { background: #e0f2fe; color: #0284c7; }
+    .stat-value { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+    .stat-label { color: #6b7280; font-size: .88rem; }
+
+    /* Panneau */
+    .panel {
+        background: #fff; border-radius: 18px; overflow: hidden;
+        box-shadow: 0 4px 14px -4px rgba(15,23,42,.1);
     }
-    
-    .table th {
-        background-color: #f8fafc;
-        font-weight: 600;
-        padding: 1rem 1.5rem;
-        border-bottom-width: 1px;
+    .panel-head {
+        display: flex; flex-wrap: wrap; gap: 1rem;
+        justify-content: space-between; align-items: center;
+        padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--border);
     }
-    
-    .table td {
-        padding: 1rem 1.5rem;
-        vertical-align: middle;
-    }
-    
-    .projet-item:hover {
-        background-color: rgba(37, 99, 235, 0.03);
-    }
-    
-    /* Badges */
-    .badge {
-        font-weight: 500;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.75rem;
-    }
-    
-    .badge-custom {
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
-        font-size: 0.875rem;
-    }
-    
+
     /* Boutons */
-    .btn-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.5rem;
-        border-radius: 8px;
-        transition: var(--transition);
+    .btn-gradient {
+        background: linear-gradient(135deg, var(--primary), var(--primary-2));
+        color: #fff; border: none; border-radius: 12px; font-weight: 600;
+        box-shadow: 0 6px 16px -4px rgba(79,70,229,.45);
+        transition: transform .15s, box-shadow .15s;
     }
-    
-    .btn-icon i {
-        font-size: 1rem;
+    .btn-gradient:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 10px 20px -4px rgba(79,70,229,.55); }
+    .btn-soft {
+        background: var(--primary-soft); color: var(--primary);
+        border: none; border-radius: 12px; font-weight: 600;
     }
-    
+    .btn-soft:hover { background: #ede9fe; color: var(--primary); }
+
+    /* Barre d'outils */
+    .toolbar {
+        display: flex; flex-wrap: wrap; gap: .8rem;
+        justify-content: space-between; align-items: center;
+        padding: 1rem 1.5rem; background: #fafafa; border-bottom: 1px solid var(--border);
+    }
+    .search-box { position: relative; flex: 1 1 260px; max-width: 360px; }
+    .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    .search-box .form-control {
+        padding-left: 2.5rem; border-radius: 12px; border: 1.5px solid var(--border);
+    }
+    .search-box .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 .25rem rgba(109,40,217,.12); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip {
+        border: 1.5px solid var(--border); background: #fff; color: #4b5563;
+        padding: .35rem .85rem; border-radius: 50px; font-size: .85rem; font-weight: 500;
+        transition: all .15s; cursor: pointer;
+    }
+    .chip span {
+        background: #f3f4f6; border-radius: 50px; padding: .05rem .5rem;
+        margin-left: .25rem; font-size: .75rem;
+    }
+    .chip:hover { border-color: #c4b5fd; }
+    .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .chip.active span { background: rgba(255,255,255,.25); color: #fff; }
+
+    /* Tableau */
+    .table thead th {
+        background: #fff; color: #6b7280; font-size: .78rem; text-transform: uppercase;
+        letter-spacing: .04em; font-weight: 600; padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .table tbody td { padding: 1rem 1.5rem; border-color: #f1f5f9; }
+    .projet-row { transition: background .15s; }
+    .projet-row:hover { background: var(--primary-soft); }
+    .projet-name { font-weight: 600; color: var(--text); }
+    .projet-desc { color: #6b7280; font-size: .82rem; }
+    .date-range { color: #4b5563; font-size: .85rem; white-space: nowrap; }
+    .date-range i:first-child { color: #9ca3af; margin-right: .25rem; }
+
+    /* Badges d'état */
+    .etat {
+        display: inline-flex; align-items: center; gap: .4rem;
+        padding: .3rem .8rem; border-radius: 50px; font-size: .78rem; font-weight: 600;
+    }
+    .etat::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .etat-planifie { background: #e0f2fe; color: #0369a1; }
+    .etat-en-cours { background: #ffedd5; color: #c2410c; }
+    .etat-termine  { background: #dcfce7; color: #15803d; }
+    .etat-annule   { background: #fee2e2; color: #b91c1c; }
+
     /* Avatar */
-    .avatar-sm {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .avatar {
+        width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #a78bfa, var(--primary-2));
+        color: #fff; font-size: .75rem; font-weight: 600;
     }
-    
-    .avatar-initial {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--primary-color);
+
+    /* Boutons d'action */
+    .icon-btn {
+        width: 36px; height: 36px; border-radius: 10px; border: none;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #f3f4f6; color: #4b5563; font-size: .9rem;
+        transition: all .15s; text-decoration: none; cursor: pointer;
     }
-    
-    /* Empty state */
-    .empty-state {
-        padding: 3rem 1rem;
-        text-align: center;
-        color: #64748b;
-    }
-    
-    .empty-state i {
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
-        color: #cbd5e1;
-    }
-    
-    /* Stage dates */
-    .stage-dates {
-        font-size: 0.9rem;
-        color: #64748b;
-        margin-top: 0.25rem;
-    }
-    
-    /* Animations */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .animate-fade {
-        animation: fadeIn 0.5s ease-out;
-    }
-    
-    /* Responsive */
+    .icon-btn:hover { background: var(--primary-soft); color: var(--primary); }
+    .icon-btn-danger:hover { background: #fee2e2; color: #dc2626; }
+
+    /* État vide */
+    .empty-state { padding: 4rem 1rem; text-align: center; color: #6b7280; }
+    .empty-state > i { font-size: 3.5rem; color: #cbd5e1; }
+
     @media (max-width: 768px) {
-        .header-section {
-            padding: 1rem 0;
-        }
-        
-        .header-content {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
-        }
-        
-        .stats-container {
-            grid-template-columns: 1fr;
-        }
-        
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
+        .dash-header { text-align: center; padding-bottom: 4rem; }
+        .table tbody td, .table thead th { padding: .85rem 1rem; }
     }
 </style>
 @endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const rows     = document.querySelectorAll('.projet-row');
+    const search   = document.getElementById('searchProjet');
+    const chips    = document.querySelectorAll('.chip');
+    const noResult = document.getElementById('noResult');
+    if (!search) return;
+
+    let etat = 'all';
+
+    function applyFilters() {
+        const q = search.value.trim().toLowerCase();
+        let shown = 0;
+        rows.forEach(row => {
+            const ok = (etat === 'all' || row.dataset.etat === etat) && row.dataset.search.includes(q);
+            row.classList.toggle('d-none', !ok);
+            if (ok) shown++;
+        });
+        noResult.classList.toggle('d-none', shown > 0);
+    }
+
+    chips.forEach(chip => chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        etat = chip.dataset.etat;
+        applyFilters();
+    }));
+
+    search.addEventListener('input', applyFilters);
+});
+</script>
+@endpush
+@endsection
